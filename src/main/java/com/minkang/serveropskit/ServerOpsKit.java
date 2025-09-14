@@ -26,8 +26,6 @@ import java.text.SimpleDateFormat;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 public class ServerOpsKit extends JavaPlugin implements Listener {
 
@@ -36,7 +34,9 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     private String webhookName;
     private String webhookAvatar;
 
+    // pregen throttle
     private boolean pregenEnabled;
+    private int pregenWindowSec;
     private double pregenSpikeMs;
     private double pregenResumeTps;
     private int pregenMaxOnline;
@@ -44,28 +44,32 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     private boolean pregenQuiet;
     private Map<String, CenterRadius> centerRadiusMap = new HashMap<>();
 
+    // spark
     private boolean sparkEnabled;
     private double sparkBelowTps;
     private int sparkDurationSec;
     private int sparkTimeoutSec;
 
+    // entity relief
     private boolean reliefEnabled;
     private int reliefSampleTicks;
     private int itemsThreshold;
     private int mobsThreshold;
     private boolean reliefMessagePlayers;
     private List<String> reliefExtraCmds;
-    private String itemCleanupMode;
+    private String itemCleanupMode; // safe | vanilla_kill
     private int itemAgeSecondsMin;
     private Set<String> whitelistIds = new HashSet<>();
     private List<String> whitelistPrefixes = new ArrayList<>();
 
+    // backup
     private boolean backupEnabled;
     private LocalTime backupTime;
     private List<String> backupWorlds;
     private File backupDir;
     private int backupKeepMax;
 
+    // autorestart
     private boolean restartEnabled;
     private int restartCheckEvery;
     private int heapThreshold;
@@ -73,6 +77,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     private List<Integer> warnMinutes;
     private String restartCommand;
 
+    // logwatch
     private boolean logwatchEnabled;
     private File latestLog;
 
@@ -88,6 +93,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         Bukkit.getPluginManager().registerEvents(this, this);
         rolling.start(this);
 
+        // Main loop: pregen throttle + spark trigger
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             handlePregenThrottle();
             handleSparkTrigger();
@@ -106,7 +112,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             Bukkit.getScheduler().runTaskTimerAsynchronously(this, this::handleLogWatch, 40L, 40L);
         }
 
-        getLogger().info("ServerOpsKit ready.");
+        getLogger().info("ServerOpsKit v" + getDescription().getVersion() + " enabled.");
     }
 
     private void loadConfigValues() {
@@ -116,6 +122,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         webhookAvatar = getConfig().getString("discord.avatar_url", "");
 
         pregenEnabled = getConfig().getBoolean("pregen_throttle.enabled", true);
+        pregenWindowSec = getConfig().getInt("pregen_throttle.avg_window_seconds", 5);
         pregenSpikeMs = getConfig().getDouble("pregen_throttle.spike_ms", 60);
         pregenResumeTps = getConfig().getDouble("pregen_throttle.resume_tps", 18.5);
         pregenMaxOnline = getConfig().getInt("pregen_throttle.max_online_to_run", 2);
@@ -125,8 +132,13 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         if (getConfig().isConfigurationSection("pregen_throttle.worlds_center_radius")) {
             for (String w : getConfig().getConfigurationSection("pregen_throttle.worlds_center_radius").getKeys(false)) {
                 String v = getConfig().getString("pregen_throttle.worlds_center_radius." + w, "0 0 3000");
-                String[] p = v.split("\\s+"); double cx=0, cz=0; int r=3000;
-                try { cx=Double.parseDouble(p[0]); cz=Double.parseDouble(p[1]); r=Integer.parseInt(p[2]); } catch (Exception ignored){}
+                String[] parts = v.split("\\s+");
+                double cx = 0, cz = 0; int r = 3000;
+                try {
+                    cx = Double.parseDouble(parts[0]);
+                    cz = Double.parseDouble(parts[1]);
+                    r = Integer.parseInt(parts[2]);
+                } catch (Exception ignored) {}
                 centerRadiusMap.put(w, new CenterRadius(cx, cz, r));
             }
         }
@@ -144,7 +156,8 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         reliefExtraCmds = (List<String>) getConfig().getList("entity_relief.actions.extra_commands", new ArrayList<>());
         itemCleanupMode = getConfig().getString("entity_relief.item_cleanup.mode","safe");
         itemAgeSecondsMin = getConfig().getInt("entity_relief.item_cleanup.age_seconds_min", 120);
-        whitelistIds.clear(); whitelistIds.addAll(getConfig().getStringList("entity_relief.item_cleanup.whitelist_ids"));
+        whitelistIds.clear();
+        whitelistIds.addAll(getConfig().getStringList("entity_relief.item_cleanup.whitelist_ids"));
         whitelistPrefixes = getConfig().getStringList("entity_relief.item_cleanup.whitelist_prefixes");
 
         backupEnabled = getConfig().getBoolean("backup.enabled", true);
@@ -166,19 +179,21 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         latestLog = new File(getDataFolder().getParentFile().getParentFile(), getConfig().getString("logwatch.latest_log_path", "logs/latest.log"));
     }
 
+    // ===== Metrics =====
     private static class RollingWindowTick {
-        private final int windowSize = 100;
+        private final int windowSize = 100; // ~5초
         private final Deque<Long> tickNs = new ArrayDeque<>();
         private long last = System.nanoTime();
         double avgTickMs = 0.0;
         double estTps = 20.0;
-        void start(JavaPlugin plugin) {
+        void start(JavaPlugin plugin){
             Bukkit.getScheduler().runTaskTimer(plugin, () -> {
                 long now = System.nanoTime();
                 long dt = now - last; last = now;
                 tickNs.addLast(dt);
                 while (tickNs.size() > windowSize) tickNs.removeFirst();
-                long sum = 0L; for (long x : tickNs) sum += x;
+                long sum = 0L;
+                for (long x : tickNs) sum += x;
                 double avgNs = (tickNs.isEmpty()? 50_000_000.0 : (double)sum / tickNs.size());
                 avgTickMs = avgNs / 1_000_000.0;
                 estTps = Math.min(20.0, 1000.0 / Math.max(1.0, avgTickMs));
@@ -196,9 +211,13 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             con.setRequestProperty("Content-Type", "application/json");
             String json = "{\"username\":\""+escape(webhookName)+"\",\"avatar_url\":\""+escape(webhookAvatar)+"\"," +
                     "\"embeds\":[{\"title\":\""+escape(title)+"\",\"description\":\""+escape(content)+"\"}]}";
-            try (OutputStream os = con.getOutputStream()) { os.write(json.getBytes(StandardCharsets.UTF_8)); }
+            try (OutputStream os = con.getOutputStream()) {
+                os.write(json.getBytes(StandardCharsets.UTF_8));
+            }
             con.getInputStream().close();
-        } catch (Exception e) { getLogger().warning("Discord webhook error: " + e.getMessage()); }
+        } catch (Exception e) {
+            getLogger().warning("Discord webhook error: " + e.getMessage());
+        }
     }
     private String escape(String s){ if(s==null) return ""; return s.replace("\\","\\\\").replace("\"","\\\""); }
 
@@ -206,11 +225,12 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         if (!pregenEnabled) return;
         double ms = rolling.avgTickMs;
         int online = Bukkit.getOnlinePlayers().size();
+
         if (ms >= pregenSpikeMs) {
             if (pregenAnnounce) Bukkit.broadcastMessage(ChatColor.YELLOW + "[프리젠 쓰로틀] 지연 스파이크 감지(" + String.format(java.util.Locale.ROOT,"%.1f",ms) + "ms) → 일시정지");
             if (pregenQuiet) dispatch("chunky quiet true");
             dispatch("chunky pause");
-            sendDiscord("프리젠 일시정지","평균 tick " + String.format(java.util.Locale.ROOT,"%.1f",ms) + "ms\n온라인: " + online);
+            sendDiscord("프리젠 일시정지","지연 스파이크 감지: 평균 tick " + String.format(java.util.Locale.ROOT,"%.1f",ms) + "ms\n온라인: " + online);
         } else {
             if (rolling.estTps >= pregenResumeTps && online <= pregenMaxOnline) {
                 if (pregenQuiet) dispatch("chunky quiet true");
@@ -240,7 +260,8 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         int items = 0, mobs = 0, removed = 0;
         for (World w : Bukkit.getWorlds()) {
             for (Entity e : w.getEntities()) {
-                if (e instanceof Item) items++; else if (e instanceof LivingEntity) mobs++;
+                if (e instanceof Item) items++;
+                else if (e instanceof LivingEntity) mobs++;
             }
         }
         if (items > itemsThreshold || mobs > mobsThreshold) {
@@ -259,7 +280,10 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
                         if (prefixed) continue;
                         int ticksLived = it.getTicksLived();
                         long ageMs = ticksLived * 50L;
-                        if (ageMs >= itemAgeSecondsMin * 1000L) { it.remove(); removed++; }
+                        if (ageMs >= itemAgeSecondsMin * 1000L) {
+                            it.remove();
+                            removed++;
+                        }
                     }
                 }
             }
@@ -269,8 +293,9 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     }
 
     private void handleBackupSchedule() {
-        LocalDate today = LocalDate.now(zone); int day = today.getDayOfYear();
-        java.time.LocalTime now = java.time.LocalTime.now(zone);
+        LocalDate today = LocalDate.now(zone);
+        int day = today.getDayOfYear();
+        LocalTime now = LocalTime.now(zone);
         if (day != lastBackupDay && now.getHour() == backupTime.getHour() && now.getMinute() == backupTime.getMinute()) {
             lastBackupDay = day;
             try { runBackup(); } catch (Exception e) { getLogger().warning("백업 실패: " + e.getMessage()); }
@@ -278,18 +303,21 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     }
 
     private void runBackup() throws IOException {
-        dispatch("save-off"); dispatch("save-all");
-        String ts = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new java.util.Date());
-        File out = new File(backupDir, "backup_" + ts + ".zip");
+        dispatch("save-off");
+        dispatch("save-all");
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        File out = new File(backupDir, "backup_" + timestamp + ".zip");
         zipWorlds(out, backupWorlds);
         dispatch("save-on");
         sendDiscord("백업 완료", "파일: " + out.getName());
         File[] files = backupDir.listFiles((d, n) -> n.endsWith(".zip"));
         if (files != null && files.length > backupKeepMax) {
-            java.util.Arrays.sort(files, java.util.Comparator.comparingLong(File::lastModified));
+            Arrays.sort(files, Comparator.comparingLong(File::lastModified));
             for (int i = 0; i < files.length - backupKeepMax; i++) files[i].delete();
         }
     }
+
+    private void zipWorlds(java.util.zip.ZipOutputStream zos, File dir, File base) throws IOException {}
 
     private void zipWorlds(File zipFile, List<String> worlds) throws IOException {
         try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(new java.io.FileOutputStream(zipFile))) {
@@ -308,7 +336,8 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             String entryName = base.toPath().relativize(src.toPath()).toString().replace("\\","/");
             try (java.io.FileInputStream fis = new java.io.FileInputStream(src)) {
                 zos.putNextEntry(new java.util.zip.ZipEntry(entryName));
-                byte[] buf = new byte[8192]; int r;
+                byte[] buf = new byte[8192];
+                int r;
                 while ((r = fis.read(buf)) != -1) zos.write(buf, 0, r);
                 zos.closeEntry();
             }
@@ -324,28 +353,39 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             sustainCounter.offer(Boolean.TRUE);
             while (sustainCounter.size() > ticks) sustainCounter.poll();
             if (sustainCounter.size() == ticks) {
-                for (int m : warnMinutes) { Bukkit.getScheduler().runTaskLater(this, () -> Bukkit.broadcastMessage(ChatColor.GOLD + "[자동 재시작] " + m + "분 후 재시작합니다."), 0L); }
-                Bukkit.getScheduler().runTaskLater(this, () -> { sendDiscord("자동 재시작","힙 사용률 " + pct + "%, 재시작 명령 실행"); dispatch(restartCommand); }, warnMinutes.get(warnMinutes.size()-1) * 60L * 20L);
+                for (int m : warnMinutes) {
+                    Bukkit.getScheduler().runTaskLater(this, () -> Bukkit.broadcastMessage(ChatColor.GOLD + "[자동 재시작] " + m + "분 후 재시작합니다."), 0L);
+                }
+                Bukkit.getScheduler().runTaskLater(this, () -> {
+                    sendDiscord("자동 재시작", "힙 사용률 " + pct + "%, 재시작 명령 실행");
+                    dispatch(restartCommand);
+                }, warnMinutes.get(warnMinutes.size()-1) * 60L * 20L);
                 sustainCounter.clear();
             }
-        } else sustainCounter.clear();
+        } else {
+            sustainCounter.clear();
+        }
     }
-    private final java.util.Queue<Boolean> sustainCounter = new ConcurrentLinkedQueue<>();
+    private final Queue<Boolean> sustainCounter = new ConcurrentLinkedQueue<>();
 
     private void handleLogWatch() {
         if (!latestLog.exists()) return;
         try (RandomAccessFile raf = new RandomAccessFile(latestLog, "r")) {
-            long len = raf.length(); long start = Math.max(0, len - 20000); raf.seek(start);
-            String line; while ((line = raf.readLine()) != null) {
+            long len = raf.length();
+            long start = Math.max(0, len - 20000);
+            raf.seek(start);
+            String line;
+            while ((line = raf.readLine()) != null) {
                 String s = new String(line.getBytes("ISO-8859-1"), StandardCharsets.UTF_8);
                 if (s.contains("The server has stopped responding") || s.contains("서버가 응답하지 않는다")) {
-                    sendDiscord("Watchdog 감지", "로그에서 서버 정지 감지: latest.log"); break;
+                    sendDiscord("Watchdog 감지", "로그에서 서버 정지 감지: latest.log");
+                    break;
                 }
             }
         } catch (Exception ignored) {}
     }
 
-    private void dispatch(String cmd){ Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd); }
+    private void dispatch(String cmd) { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd); }
 
     @EventHandler
     public void onMove(PlayerMoveEvent e){
@@ -358,27 +398,59 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         double dist = Math.sqrt(dx*dx + dz*dz);
         if (dist >= (cr.r - 200) && dist < cr.r) {
             e.getPlayer().spigot().sendMessage(
-                ChatMessageType.ACTION_BAR, new TextComponent(ChatColor.YELLOW + "경계가 곧 나옵니다. (" + (int)(cr.r - dist) + "m 남음)")
+                ChatMessageType.ACTION_BAR,
+                new TextComponent(ChatColor.YELLOW + "경계가 곧 나옵니다. (" + (int)(cr.r - dist) + "m 남음)")
             );
         }
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("serveropskit.admin")) { sender.sendMessage(ChatColor.RED + "권한이 없습니다."); return true; }
+        if (!sender.hasPermission("serveropskit.admin")) {
+            sender.sendMessage(ChatColor.RED + "권한이 없습니다.");
+            return true;
+        }
         String name = command.getName();
         if (name.equalsIgnoreCase("opskit")) {
-            if (args.length == 0) { sender.sendMessage(ChatColor.AQUA + "/opskit <status|reload|testwebhook|pause|resume|backup|restart>"); return true; }
+            if (args.length == 0) {
+                sender.sendMessage(ChatColor.AQUA + "/opskit <status|reload|testwebhook|pause|resume|backup|restart>");
+                return true;
+            }
             String sub = args[0].toLowerCase(java.util.Locale.ROOT);
             switch (sub) {
-                case "status": sender.sendMessage(ChatColor.AQUA + "[ServerOpsKit] avgTick=" + String.format(java.util.Locale.ROOT,"%.1fms", rolling.avgTickMs) + " estTPS=" + String.format(java.util.Locale.ROOT,"%.2f", rolling.estTps)); break;
-                case "reload": reloadConfig(); loadConfigValues(); sender.sendMessage(ChatColor.GREEN + "리로드 완료"); break;
-                case "testwebhook": sendDiscord("테스트","웹훅 연결 테스트"); sender.sendMessage(ChatColor.GRAY + "웹훅 테스트 전송"); break;
-                case "pause": dispatch("chunky pause"); sender.sendMessage(ChatColor.YELLOW + "Chunky 일시정지"); break;
-                case "resume": if (pregenQuiet) dispatch("chunky quiet true"); dispatch("chunky continue"); sender.sendMessage(ChatColor.GREEN + "Chunky 재개"); break;
-                case "backup": try { runBackup(); sender.sendMessage(ChatColor.GREEN + "백업 완료"); } catch (Exception e){ sender.sendMessage(ChatColor.RED + "백업 실패: " + e.getMessage()); } break;
-                case "restart": dispatch(restartCommand); sender.sendMessage(ChatColor.GOLD + "재시작 명령 실행"); break;
-                default: sender.sendMessage(ChatColor.AQUA + "/opskit <status|reload|testwebhook|pause|resume|backup|restart>");
+                case "status":
+                    sender.sendMessage(ChatColor.AQUA + "[ServerOpsKit] "
+                            + "avgTick=" + String.format(java.util.Locale.ROOT,"%.1fms", rolling.avgTickMs)
+                            + " estTPS=" + String.format(java.util.Locale.ROOT,"%.2f", rolling.estTps));
+                    break;
+                case "reload":
+                    reloadConfig();
+                    loadConfigValues();
+                    sender.sendMessage(ChatColor.GREEN + "리로드 완료");
+                    break;
+                case "testwebhook":
+                    sendDiscord("테스트", "웹훅 연결 테스트");
+                    sender.sendMessage(ChatColor.GRAY + "웹훅 테스트 전송");
+                    break;
+                case "pause":
+                    dispatch("chunky pause");
+                    sender.sendMessage(ChatColor.YELLOW + "Chunky 일시정지");
+                    break;
+                case "resume":
+                    if (pregenQuiet) dispatch("chunky quiet true");
+                    dispatch("chunky continue");
+                    sender.sendMessage(ChatColor.GREEN + "Chunky 재개");
+                    break;
+                case "backup":
+                    try { runBackup(); sender.sendMessage(ChatColor.GREEN + "백업 완료"); }
+                    catch (Exception e){ sender.sendMessage(ChatColor.RED + "백업 실패: " + e.getMessage()); }
+                    break;
+                case "restart":
+                    dispatch(restartCommand);
+                    sender.sendMessage(ChatColor.GOLD + "재시작 명령 실행");
+                    break;
+                default:
+                    sender.sendMessage(ChatColor.AQUA + "/opskit <status|reload|testwebhook|pause|resume|backup|restart>");
             }
             return true;
         } else if (name.equalsIgnoreCase("청키")) {
@@ -390,11 +462,15 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             if (sub==null){ sender.sendMessage(ChatColor.RED + "알 수 없는 서브명령: " + args[0]); return true; }
             StringBuilder sb = new StringBuilder("chunky ").append(sub);
             for (int i=1;i<args.length;i++) sb.append(' ').append(args[i]);
-            dispatch(sb.toString()); sender.sendMessage(ChatColor.GRAY + "→ " + sb); return true;
+            dispatch(sb.toString());
+            sender.sendMessage(ChatColor.GRAY + "→ " + sb);
+            return true;
         }
         return false;
     }
 
-    private static class CenterRadius { final double cx, cz; final int r;
-        CenterRadius(double cx, double cz, int r){ this.cx=cx; this.cz=cz; this.r=r; } }
+    private static class CenterRadius {
+        final double cx, cz; final int r;
+        CenterRadius(double cx, double cz, int r){ this.cx=cx; this.cz=cz; this.r=r; }
+    }
 }

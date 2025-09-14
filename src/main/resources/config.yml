@@ -27,16 +27,16 @@ entity_relief:
     items_total: 1200
     mobs_total: 900
   item_cleanup:
-    mode: "safe"
+    mode: "safe"        # safe | vanilla_kill
     age_seconds_min: 120
     whitelist_ids:
       - "minecraft:nether_star"
       - "minecraft:diamond"
     whitelist_prefixes:
-      - "pixelmon:"
+      - "pixelmon:"     # 픽셀몬 아이템 보호
   actions:
     message_players: true
-    extra_commands: []
+    extra_commands: []  # 추가로 실행할 콘솔 명령 (문자열 배열)
 backup:
   enabled: true
   hour_minute: "04:30"
