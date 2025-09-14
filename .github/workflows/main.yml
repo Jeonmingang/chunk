@@ -1,55 +1,30 @@
-name: Build (Java 8 / Spigot 1.16.5)
+name: Java CI with Maven
 
 on:
   push:
-    branches: [ "main", "master" ]
-    tags: [ "v*" ]
+    branches: [ "main" ]
   pull_request:
-
-permissions:
-  contents: write
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up JDK 8 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "8"
-          cache: maven
+    - name: Set up JDK 8
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '8'
 
-      - name: Maven package (build all modules)
-        run: mvn -B -DskipTests clean package
+    - name: Build with Maven
+      run: mvn -B clean package --file pom.xml
 
-      - name: Upload JARs
-        uses: actions/upload-artifact@v4
-        with:
-          name: jars
-          path: |
-            ultimate-autochunky/target/*.jar
-            serveropskit/target/*.jar
-            !**/*-sources.jar
-            !**/*-javadoc.jar
-
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: jars
-          path: artifacts
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload plugin jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: UltimateTrashOptimize
+        path: target/UltimateTrashOptimize-*.jar
