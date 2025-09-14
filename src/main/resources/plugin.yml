@@ -1,0 +1,18 @@
+name: ServerOpsKit
+main: com.minkang.serveropskit.ServerOpsKit
+version: 1.1.1
+api-version: 1.16
+softdepend: [Chunky, WorldBorder, spark]
+commands:
+  opskit:
+    description: 서버 운영 자동화 키트 제어
+    usage: "/opskit <status|reload|testwebhook|pause|resume|backup|restart>"
+    permission: serveropskit.admin
+    aliases: [운영, 서버운영, 운영키트]
+  청키:
+    description: Chunky 명령 한글 브릿지
+    usage: "/청키 <월드|중심|반경|모양|시작|일시정지|재개|정지|조용|상태> [값...]"
+    permission: serveropskit.admin
+permissions:
+  serveropskit.admin:
+    default: op
