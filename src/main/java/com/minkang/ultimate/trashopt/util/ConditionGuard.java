@@ -5,24 +5,21 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 
-import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 public class ConditionGuard {
 
     public static boolean checkAllowed(CommandSender sender, String context) {
         Main plugin = Main.getInstance();
         boolean enabled = plugin.getConfig().getBoolean("conditions.enabled", true);
-        if (!enabled) {
-            return true;
-        }
+        if (!enabled) return true;
 
         // TPS
         double minTps = plugin.getConfig().getDouble("conditions.min_tps", 18.5);
         double currentTps = plugin.getTpsMonitor().getTps();
         if (currentTps < minTps) {
-            sender.sendMessage(ChatColor.RED + "[조건] TPS " + String.format("%.2f", currentTps) + " < " + minTps + " 이므로 '" + context + "' 실행 불가");
+            sender.sendMessage(ChatColor.RED + "[조건] TPS " + String.format(\"%.2f\", currentTps) + " < " + minTps + " 이므로 '" + context + "' 실행 불가");
             return false;
         }
 
@@ -46,8 +43,7 @@ public class ConditionGuard {
             boolean inWindow;
             if (start <= end) {
                 inWindow = (hour >= start && hour < end);
-            } else {
-                // wrap (e.g., 22 -> 6)
+            } else { // wrap (22 -> 6)
                 inWindow = !(hour >= end && hour < start);
             }
             if (!inWindow) {

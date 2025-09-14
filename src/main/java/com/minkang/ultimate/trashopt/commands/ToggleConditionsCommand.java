@@ -2,7 +2,6 @@ package com.minkang.ultimate.trashopt.commands;
 
 import com.minkang.ultimate.trashopt.Main;
 import com.minkang.ultimate.trashopt.util.ConditionGuard;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -42,7 +41,6 @@ public class ToggleConditionsCommand implements CommandExecutor {
             return true;
         }
 
-        // /조건 [on|off]  or toggle if no arg
         boolean currently = plugin.getConfig().getBoolean("conditions.enabled", true);
         boolean target = currently;
         if (args.length >= 1) {

@@ -48,21 +48,12 @@ public class CleanupCommand implements CommandExecutor {
 
         int totalSeconds = plugin.getConfig().getInt("cleanup.default_seconds", 30);
         if (args.length >= 2) {
-            try {
-                totalSeconds = Integer.parseInt(args[1]);
-            } catch (NumberFormatException ignored) { }
+            try { totalSeconds = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) {}
         }
         if (totalSeconds < 1) totalSeconds = 1;
 
         List<Integer> announce = plugin.getConfig().getIntegerList("cleanup.announce_seconds");
-        if (announce == null || announce.isEmpty()) {
-            announce = new ArrayList<Integer>();
-            announce.add(30);
-            announce.add(10);
-            announce.add(3);
-            announce.add(2);
-            announce.add(1);
-        }
+        if (announce == null || announce.isEmpty()) announce = java.util.Arrays.asList(30,10,3,2,1);
 
         String msgTpl = plugin.getConfig().getString("cleanup.message_template", "&e{world}&7 월드에서 {sec}초 후 바닥 아이템을 청소합니다.");
         String clearedTpl = plugin.getConfig().getString("cleanup.cleared_message", "&a{world}&7 월드 바닥 아이템 {count}개 제거 완료.");
@@ -72,14 +63,11 @@ public class CleanupCommand implements CommandExecutor {
         if (typeNames != null) {
             for (String t : typeNames) {
                 try {
-                    EntityType et = EntityType.valueOf(t);
-                    targets.add(et);
-                } catch (IllegalArgumentException ignored) { }
+                    targets.add(EntityType.valueOf(t));
+                } catch (IllegalArgumentException ignored) {}
             }
         }
-        if (targets.isEmpty()) {
-            targets.add(EntityType.DROPPED_ITEM);
-        }
+        if (targets.isEmpty()) targets.add(EntityType.DROPPED_ITEM);
 
         final int[] taskIdHolder = new int[1];
         taskIdHolder[0] = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {

@@ -24,7 +24,6 @@ public class TpsMonitor {
                 long now = System.currentTimeMillis();
                 long diff = now - lastTime;
                 if (diff >= 1000) {
-                    // Calculate TPS in last second window
                     tps = Math.min(20.0, ticks * 1000.0 / diff);
                     ticks = 0;
                     lastTime = now;

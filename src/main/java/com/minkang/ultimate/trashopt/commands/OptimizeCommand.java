@@ -39,28 +39,17 @@ public class OptimizeCommand implements CommandExecutor {
         int radius = 3000;
 
         if ("시작".equals(action)) {
-            if (args.length >= 3) {
-                worldName = args[2];
-            }
+            if (args.length >= 3) worldName = args[2];
             if (args.length >= 4) {
-                try {
-                    radius = Integer.parseInt(args[3]);
-                } catch (NumberFormatException e) {
-                    sender.sendMessage(ChatColor.RED + "반경은 숫자여야 합니다.");
-                    return true;
-                }
+                try { radius = Integer.parseInt(args[3]); }
+                catch (NumberFormatException e) { sender.sendMessage(ChatColor.RED + "반경은 숫자여야 합니다."); return true; }
             }
         } else if ("재조명".equals(action)) {
-            if (args.length >= 3) {
-                worldName = args[2];
-            }
+            if (args.length >= 3) worldName = args[2];
         }
 
         if ("all".equals(tool)) {
-            if (!"시작".equals(action)) {
-                sender.sendMessage(ChatColor.RED + "사용법: /" + label + " all 시작 [월드] [반경]");
-                return true;
-            }
+            if (!"시작".equals(action)) { sender.sendMessage(ChatColor.RED + "사용법: /" + label + " all 시작 [월드] [반경]"); return true; }
             if (!ConditionGuard.checkAllowed(sender, "최적화(all)")) return true;
             runTemplate(sender, "optimize.chunky.start", worldName, radius);
             runTemplate(sender, "optimize.worldborder.start", worldName, radius);
@@ -70,39 +59,19 @@ public class OptimizeCommand implements CommandExecutor {
         }
 
         if ("chunky".equals(tool)) {
-            if ("시작".equals(action)) {
-                if (!ConditionGuard.checkAllowed(sender, "Chunky")) return true;
-                runTemplate(sender, "optimize.chunky.start", worldName, radius);
-                return true;
-            } else if ("일시중지".equals(action)) {
-                runTemplate(sender, "optimize.chunky.pause", worldName, radius);
-                return true;
-            } else if ("상태".equals(action)) {
-                runTemplate(sender, "optimize.chunky.status", worldName, radius);
-                return true;
-            }
+            if ("시작".equals(action)) { if (!ConditionGuard.checkAllowed(sender, "Chunky")) return true; runTemplate(sender, "optimize.chunky.start", worldName, radius); return true; }
+            else if ("일시중지".equals(action)) { runTemplate(sender, "optimize.chunky.pause", worldName, radius); return true; }
+            else if ("상태".equals(action)) { runTemplate(sender, "optimize.chunky.status", worldName, radius); return true; }
         }
 
         if ("worldborder".equals(tool)) {
-            if ("시작".equals(action)) {
-                if (!ConditionGuard.checkAllowed(sender, "WorldBorder")) return true;
-                runTemplate(sender, "optimize.worldborder.start", worldName, radius);
-                return true;
-            } else if ("일시중지".equals(action)) {
-                runTemplate(sender, "optimize.worldborder.pause", worldName, radius);
-                return true;
-            } else if ("상태".equals(action)) {
-                runTemplate(sender, "optimize.worldborder.status", worldName, radius);
-                return true;
-            }
+            if ("시작".equals(action)) { if (!ConditionGuard.checkAllowed(sender, "WorldBorder")) return true; runTemplate(sender, "optimize.worldborder.start", worldName, radius); return true; }
+            else if ("일시중지".equals(action)) { runTemplate(sender, "optimize.worldborder.pause", worldName, radius); return true; }
+            else if ("상태".equals(action)) { runTemplate(sender, "optimize.worldborder.status", worldName, radius); return true; }
         }
 
         if ("starlight".equals(tool)) {
-            if ("재조명".equals(action)) {
-                if (!ConditionGuard.checkAllowed(sender, "Starlight 재조명")) return true;
-                runTemplate(sender, "optimize.starlight.relight", worldName, radius);
-                return true;
-            }
+            if ("재조명".equals(action)) { if (!ConditionGuard.checkAllowed(sender, "Starlight 재조명")) return true; runTemplate(sender, "optimize.starlight.relight", worldName, radius); return true; }
         }
 
         sender.sendMessage(ChatColor.RED + "알 수 없는 명령입니다. /" + label + " 로 도움말을 확인하세요.");
@@ -117,9 +86,7 @@ public class OptimizeCommand implements CommandExecutor {
         }
         if (Bukkit.getWorld(worldName) == null) {
             World any = Bukkit.getWorlds().isEmpty() ? null : Bukkit.getWorlds().get(0);
-            if (any != null) {
-                worldName = any.getName();
-            }
+            if (any != null) worldName = any.getName();
         }
         for (String c : cmds) {
             String finalCmd = c.replace("{world}", worldName).replace("{radius}", String.valueOf(radius));
