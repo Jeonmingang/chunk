@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.minkang</groupId>
   <artifactId>serveropskit</artifactId>
-  <version>1.1.1</version>
+  <version>1.1.2</version>
   <name>ServerOpsKit</name>
-  <description>CatServer/Spigot 1.16.5 서버 운영 자동화 세트 (Pixelmon 친화, KR, 프리젠 쓰로틀/스파크/엔티티 정리/백업/재시작/로그감시)</description>
+  <description>ServerOps automation (Pixelmon-friendly) for CatServer/Spigot 1.16.5, Java 8</description>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>

@@ -1,72 +1,55 @@
-# ServerOpsKit v1.1.1 (한국어) - Pixelmon 친화 기본값
 timezone: "Asia/Seoul"
-
 discord:
-  webhook_url: ""     # 디스코드 웹훅 URL (비워두면 알림 비활성화)
+  webhook_url: ""
   username: "ServerOpsKit"
   avatar_url: ""
-
-# 동적 프리젠 쓰로틀 (Chunky를 조건부 일시정지/재개)
 pregen_throttle:
   enabled: true
-  avg_window_seconds: 5          # 평균 윈도우
-  spike_ms: 60                   # 최근 평균 1틱 시간이 이 값(ms) 이상이면 일시정지
-  resume_tps: 18.5               # 재개 TPS 기준 (Chunky continue)
+  avg_window_seconds: 5
+  spike_ms: 60
+  resume_tps: 18.5
   max_online_to_run: 2
-  announce_to_players: true      # 알림을 서버 채팅에도 표시
+  announce_to_players: true
   use_chunky_quiet: true
-  worlds_center_radius:          # WB 없어도 안내 가능하도록 중심/반경 정보(옵션)
+  worlds_center_radius:
     world: "0 0 3000"
     world_nether: "0 0 2000"
     world_the_end: "0 0 2000"
-
-# spark 자동 프로파일러 트리거
 spark_trigger:
   enabled: true
   below_tps: 15.0
-  duration_seconds: 10           # 연속 N초 조건 충족 시 트리거
-  timeout_seconds: 60            # spark profiler --timeout 값
-
-# 엔티티 부하 완화 (Pixelmon 친화)
+  duration_seconds: 10
+  timeout_seconds: 60
 entity_relief:
   enabled: true
   sample_every_ticks: 100
   thresholds:
-    items_total: 1200            # 전 서버 아이템 개수 임계
-    mobs_total: 900              # 전 서버 몹 개수 임계
+    items_total: 1200
+    mobs_total: 900
   item_cleanup:
-    mode: "safe"                 # safe | vanilla_kill
-    age_seconds_min: 120         # safe 모드에서 이 시간 이상된 아이템만 제거
-    whitelist_ids:               # item id 화이트리스트(정확 매칭)
+    mode: "safe"
+    age_seconds_min: 120
+    whitelist_ids:
       - "minecraft:nether_star"
       - "minecraft:diamond"
-    whitelist_prefixes:          # 접두어 화이트리스트(예: pixelmon:* 모두 보존)
+    whitelist_prefixes:
       - "pixelmon:"
   actions:
-    message_players: true        # 경고 메시지 안내
-    extra_commands: []           # 추가 콘솔 명령
-
-# 자동 백업 (ZIP) + 롤오버
+    message_players: true
+    extra_commands: []
 backup:
   enabled: true
-  hour_minute: "04:30"           # 매일 04:30 실행 (오프피크 추천)
-  worlds:
-    - "world"
-    - "world_nether"
-    - "world_the_end"
+  hour_minute: "04:30"
+  worlds: ["world","world_nether","world_the_end"]
   dir: "backups"
-  keep_max: 14                   # 최대 보관 개수(초과분은 오래된 것부터 삭제)
-
-# 자동 재시작 (메모리/시간 기반)
+  keep_max: 14
 autorestart:
   enabled: true
   check_every_seconds: 30
-  heap_usage_percent_threshold: 90  # 자바 힙 사용률 임계치
-  sustain_seconds: 180             # N초 지속 시 재시작
-  warn_minutes: [5, 1]             # 재시작 전 공지 분
-  restart_command: "restart"       # CatServer에서 재시작 명령 사용 가능 여부 확인
-
-# Watchdog/로그 분석 (간단)
+  heap_usage_percent_threshold: 90
+  sustain_seconds: 180
+  warn_minutes: [5, 1]
+  restart_command: "restart"
 logwatch:
   enabled: true
   latest_log_path: "logs/latest.log"

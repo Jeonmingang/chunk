@@ -15,6 +15,9 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import net.md_5.bungee.api.ChatMessageType;
+import net.md_5.bungee.api.chat.TextComponent;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -90,14 +93,9 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         saveDefaultConfig();
         loadConfigValues();
 
-        // listeners
         Bukkit.getPluginManager().registerEvents(this, this);
-
-        // schedulers
-        // tick metrics each tick for accuracy
         rolling.start(this);
 
-        // once per second checks
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             handlePregenThrottle();
             handleSparkTrigger();
@@ -133,7 +131,6 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         pregenAnnounce = getConfig().getBoolean("pregen_throttle.announce_to_players", true);
         pregenQuiet = getConfig().getBoolean("pregen_throttle.use_chunky_quiet", true);
 
-        // parse centers
         if (getConfig().isConfigurationSection("pregen_throttle.worlds_center_radius")) {
             for (String w : getConfig().getConfigurationSection("pregen_throttle.worlds_center_radius").getKeys(false)) {
                 String v = getConfig().getString("pregen_throttle.worlds_center_radius." + w, "0 0 3000");
@@ -184,9 +181,9 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         latestLog = new File(getDataFolder().getParentFile().getParentFile(), getConfig().getString("logwatch.latest_log_path", "logs/latest.log"));
     }
 
-    // ===== Metrics & Helpers =====
+    // ===== Metrics =====
     private static class RollingWindowTick {
-        private final int windowSize = 100; // 최근 100틱 (약 5초) 평균
+        private final int windowSize = 100; // ~5초
         private final Deque<Long> tickNs = new ArrayDeque<>();
         private long last = System.nanoTime();
         double avgTickMs = 0.0;
@@ -202,7 +199,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
                 double avgNs = (tickNs.isEmpty()? 50_000_000.0 : (double)sum / tickNs.size());
                 avgTickMs = avgNs / 1_000_000.0;
                 estTps = Math.min(20.0, 1000.0 / Math.max(1.0, avgTickMs));
-            }, 1L, 1L); // 매 틱
+            }, 1L, 1L);
         }
     }
 
@@ -226,19 +223,16 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
     }
     private String escape(String s){ if(s==null) return ""; return s.replace("\\","\\\\").replace("\"","\\\""); }
 
-    // ===== Features =====
     private void handlePregenThrottle() {
         if (!pregenEnabled) return;
         double ms = rolling.avgTickMs;
         int online = Bukkit.getOnlinePlayers().size();
 
         if (ms >= pregenSpikeMs) {
-            if (pregenAnnounce)
-                Bukkit.broadcastMessage(ChatColor.YELLOW + "[프리젠 쓰로틀] 지연 스파이크 감지(" + String.format(Locale.ROOT,"%.1f",ms) + "ms) → 일시정지");
+            if (pregenAnnounce) Bukkit.broadcastMessage(ChatColor.YELLOW + "[프리젠 쓰로틀] 지연 스파이크 감지(" + String.format(java.util.Locale.ROOT,"%.1f",ms) + "ms) → 일시정지");
             if (pregenQuiet) dispatch("chunky quiet true");
             dispatch("chunky pause");
-            sendDiscord("프리젠 일시정지",
-                    "지연 스파이크 감지: 평균 tick " + String.format(Locale.ROOT,"%.1f",ms) + "ms\n온라인: " + online);
+            sendDiscord("프리젠 일시정지","지연 스파이크 감지: 평균 tick " + String.format(java.util.Locale.ROOT,"%.1f",ms) + "ms\n온라인: " + online);
         } else {
             if (rolling.estTps >= pregenResumeTps && online <= pregenMaxOnline) {
                 if (pregenQuiet) dispatch("chunky quiet true");
@@ -256,8 +250,7 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             long elapsed = (now - lowTpsStart) / 1000L;
             if (elapsed >= sparkDurationSec) {
                 dispatch("spark profiler --timeout " + sparkTimeoutSec);
-                sendDiscord("spark profiler 트리거",
-                        "TPS 하락 지속(" + String.format(Locale.ROOT,"%.1f",tps) + " < " + sparkBelowTps + " for " + elapsed + "s)");
+                sendDiscord("spark profiler 트리거","TPS 하락 지속(" + String.format(java.util.Locale.ROOT,"%.1f",tps) + " < " + sparkBelowTps + " for " + elapsed + "s)");
                 lowTpsStart = 0L;
             }
         } else {
@@ -278,18 +271,17 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
             if ("vanilla_kill".equalsIgnoreCase(itemCleanupMode)) {
                 dispatch("minecraft:kill @e[type=item]");
             } else {
-                // safe mode: only old non-whitelisted items
                 long now = System.currentTimeMillis();
                 for (World w : Bukkit.getWorlds()) {
                     for (Entity e : new ArrayList<>(w.getEntitiesByClass(Item.class))) {
                         Item it = (Item)e;
                         ItemStack st = it.getItemStack();
-                        String id = st.getType().getKey().toString(); // namespace:id
+                        // Spigot 1.16.5 호환: getType().getKey() 미사용, enum 이름을 id로 사용
+                        String id = "minecraft:" + st.getType().name().toLowerCase(java.util.Locale.ROOT);
                         if (whitelistIds.contains(id)) continue;
                         boolean prefixed = false;
                         for (String p : whitelistPrefixes) { if (id.startsWith(p)) { prefixed = true; break; } }
                         if (prefixed) continue;
-                        // approximate age: ticks lived * 50ms
                         int ticksLived = it.getTicksLived();
                         long ageMs = ticksLived * 50L;
                         if (ageMs >= itemAgeSecondsMin * 1000L) {
@@ -322,7 +314,6 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         zipWorlds(out, backupWorlds);
         dispatch("save-on");
         sendDiscord("백업 완료", "파일: " + out.getName());
-        // rollover
         File[] files = backupDir.listFiles((d, n) -> n.endsWith(".zip"));
         if (files != null && files.length > backupKeepMax) {
             Arrays.sort(files, Comparator.comparingLong(File::lastModified));
@@ -398,7 +389,6 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
 
     private void dispatch(String cmd) { Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd); }
 
-    // 경계 200블록 접근 안내 (옵션, WB 없어도 centerRadiusMap 기준으로 메시지만)
     @EventHandler
     public void onMove(PlayerMoveEvent e){
         if (centerRadiusMap.isEmpty()) return;
@@ -409,7 +399,10 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         double dz = e.getPlayer().getLocation().getZ() - cr.cz;
         double dist = Math.sqrt(dx*dx + dz*dz);
         if (dist >= (cr.r - 200) && dist < cr.r) {
-            e.getPlayer().sendActionBar(ChatColor.YELLOW + "경계가 곧 나옵니다. (" + (int)(cr.r - dist) + "m 남음)");
+            e.getPlayer().spigot().sendMessage(
+                ChatMessageType.ACTION_BAR,
+                new TextComponent(ChatColor.YELLOW + "경계가 곧 나옵니다. (" + (int)(cr.r - dist) + "m 남음)")
+            );
         }
     }
 
@@ -425,12 +418,12 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
                 sender.sendMessage(ChatColor.AQUA + "/opskit <status|reload|testwebhook|pause|resume|backup|restart>");
                 return true;
             }
-            String sub = args[0].toLowerCase(Locale.ROOT);
+            String sub = args[0].toLowerCase(java.util.Locale.ROOT);
             switch (sub) {
                 case "status":
                     sender.sendMessage(ChatColor.AQUA + "[ServerOpsKit] "
-                            + "avgTick=" + String.format(Locale.ROOT,"%.1fms", rolling.avgTickMs)
-                            + " estTPS=" + String.format(Locale.ROOT,"%.2f", rolling.estTps));
+                            + "avgTick=" + String.format(java.util.Locale.ROOT,"%.1fms", rolling.avgTickMs)
+                            + " estTPS=" + String.format(java.util.Locale.ROOT,"%.2f", rolling.estTps));
                     break;
                 case "reload":
                     reloadConfig();
@@ -478,7 +471,6 @@ public class ServerOpsKit extends JavaPlugin implements Listener {
         return false;
     }
 
-    // helpers
     private static class CenterRadius {
         final double cx, cz; final int r;
         CenterRadius(double cx, double cz, int r){ this.cx=cx; this.cz=cz; this.r=r; }
