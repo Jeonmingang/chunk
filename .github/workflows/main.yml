@@ -1,4 +1,4 @@
-name: Java 8 Maven - Auto modules
+name: Build (Java 8 / Spigot 1.16.5)
 
 on:
   push:
@@ -16,31 +16,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 8
+      - name: Set up JDK 8 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "8"
           cache: maven
 
-      - name: Build all Maven modules (auto-discover)
-        run: |
-          set -e
-          mapfile -t POMS < <(git ls-files | grep -E '(^|/)+pom\.xml$' | grep -v '^\.github/')
-          echo "Found POMs:"
-          printf ' - %s
-' "${POMS[@]}"
-          for P in "${POMS[@]}"; do
-            echo ">>> Building $P"
-            mvn -B -q -DskipTests -f "$P" clean package
-          done
+      - name: Maven package (build all modules)
+        run: mvn -B -DskipTests clean package
 
-      - name: Upload all JARs
+      - name: Upload JARs
         uses: actions/upload-artifact@v4
         with:
           name: jars
           path: |
-            **/target/*.jar
+            ultimate-autochunky/target/*.jar
+            serveropskit/target/*.jar
             !**/*-sources.jar
             !**/*-javadoc.jar
 
