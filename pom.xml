@@ -2,11 +2,18 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.minkang</groupId>
+
+  <parent>
+    <groupId>com.minkang</groupId>
+    <artifactId>mc-ops-bundle</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
   <artifactId>serveropskit</artifactId>
   <version>1.1.2</version>
   <name>ServerOpsKit</name>
-  <description>ServerOps automation (Pixelmon-friendly) for CatServer/Spigot 1.16.5, Java 8</description>
+  <description>서버 운영 자동화 세트(픽셀몬 친화, Java 8 / 1.16.5)</description>
+
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -17,7 +24,16 @@
       <id>spigot-repo</id>
       <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
     </repository>
+    <repository>
+      <id>codemc</id>
+      <url>https://repo.codemc.io/repository/maven-public/</url>
+    </repository>
+    <repository>
+      <id>jitpack.io</id>
+      <url>https://jitpack.io</url>
+    </repository>
   </repositories>
+
   <dependencies>
     <dependency>
       <groupId>org.spigotmc</groupId>
