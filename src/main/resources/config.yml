@@ -1,55 +1,36 @@
-timezone: "Asia/Seoul"
-discord:
-  webhook_url: ""
-  username: "ServerOpsKit"
-  avatar_url: ""
-pregen_throttle:
+world-name: bskyblock_world
+
+trash:
+  gui-title: "쓰레기통"
+  size: 54
+
+optimize:
+  default-tool: chunky
+  chunky:
+    start: ["chunky world {world}", "chunky center 0 0", "chunky radius {radius}", "chunky pattern square", "chunky start"]
+    pause: ["chunky pause"]
+    status: ["chunky status"]
+  worldborder:
+    start: ["wb {world} set {radius} spawn", "wb {world} fill"]
+    pause: ["wb fill cancel"]
+    status: ["wb fill status"]
+  starlight:
+    relight: ["starlight relight {world}"]
+
+cleanup:
+  worlds: ["world", "bskyblock_world"]
+  announce_seconds: [30, 10, 3, 2, 1]
+  default_seconds: 30
+  message_template: "&e{world}&7 월드에서 {sec}초 후 바닥 아이템을 청소합니다."
+  cleared_message: "&a{world}&7 월드 바닥 아이템 {count}개 제거 완료."
+  target_entity_types: ["DROPPED_ITEM"]
+
+conditions:
   enabled: true
-  avg_window_seconds: 5
-  spike_ms: 60
-  resume_tps: 18.5
-  max_online_to_run: 2
-  announce_to_players: true
-  use_chunky_quiet: true
-  worlds_center_radius:
-    world: "0 0 3000"
-    world_nether: "0 0 2000"
-    world_the_end: "0 0 2000"
-spark_trigger:
-  enabled: true
-  below_tps: 15.0
-  duration_seconds: 10
-  timeout_seconds: 60
-entity_relief:
-  enabled: true
-  sample_every_ticks: 100
-  thresholds:
-    items_total: 1200
-    mobs_total: 900
-  item_cleanup:
-    mode: "safe"        # safe | vanilla_kill
-    age_seconds_min: 120
-    whitelist_ids:
-      - "minecraft:nether_star"
-      - "minecraft:diamond"
-    whitelist_prefixes:
-      - "pixelmon:"     # 픽셀몬 아이템 보호
-  actions:
-    message_players: true
-    extra_commands: []  # 추가로 실행할 콘솔 명령 (문자열 배열)
-backup:
-  enabled: true
-  hour_minute: "04:30"
-  worlds: ["world","world_nether","world_the_end"]
-  dir: "backups"
-  keep_max: 14
-autorestart:
-  enabled: true
-  check_every_seconds: 30
-  heap_usage_percent_threshold: 90
-  sustain_seconds: 180
-  warn_minutes: [5, 1]
-  restart_command: "restart"
-logwatch:
-  enabled: true
-  latest_log_path: "logs/latest.log"
+  min_tps: 18.5         # TPS가 이 값 이상일 때만 허용
+  max_players: 4        # 온라인 플레이어 수가 이 값 이하일 때만 허용
+  time_window:
+    enabled: true
+    timezone: "Asia/Seoul"
+    start_hour: 2       # 02:00부터
+    end_hour: 9         # 09:00까지 (start < end 기준, 래핑 처리 포함)

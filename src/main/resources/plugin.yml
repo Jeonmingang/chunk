@@ -1,18 +1,37 @@
-name: ServerOpsKit
-main: com.minkang.serveropskit.ServerOpsKit
-version: 1.1.2
+name: UltimateTrashOptimize
+main: com.minkang.ultimate.trashopt.Main
+version: 1.2.0
 api-version: 1.16
-softdepend: [Chunky, WorldBorder, spark]
+author: minkang
 commands:
-  opskit:
-    description: 서버 운영 자동화 키트 제어
-    usage: "/opskit <status|reload|testwebhook|pause|resume|backup|restart>"
-    permission: serveropskit.admin
-    aliases: [운영, 서버운영, 운영키트]
-  청키:
-    description: Chunky 명령 한글 브릿지
-    usage: "/청키 <월드|중심|반경|모양|시작|일시정지|재개|정지|조용|상태> [값...]"
-    permission: serveropskit.admin
+  trash:
+    description: Open trash GUI
+    usage: /trash
+    aliases: [쓰레기통]
+  쓰레기통:
+    description: 쓰레기통 GUI 열기 및 관리
+    usage: /쓰레기통 [설정|지급]
+  optimize:
+    description: Korean wrappers for Chunky/WorldBorder/Starlight
+    usage: /optimize <chunky|worldborder|starlight|all> <action> [world] [radius]
+    aliases: [최적화]
+  cleanup:
+    description: Per-world ground item cleanup with countdown
+    usage: /cleanup <world> [seconds]
+    aliases: [청소]
+  조건:
+    description: 조건 토글 (on/off) 또는 현재 상태 확인
+    usage: /조건 [on|off]
+  조건상태:
+    description: 현재 조건 및 허용 여부 표시
+    usage: /조건상태
 permissions:
-  serveropskit.admin:
+  ultimate.trash.admin:
     default: op
+    description: 쓰레기통 설정/지급 권한
+  ultimate.cleanup.admin:
+    default: op
+    description: 청소 명령 실행 권한
+  ultimate.conditions.admin:
+    default: op
+    description: 조건 토글/설정 권한
