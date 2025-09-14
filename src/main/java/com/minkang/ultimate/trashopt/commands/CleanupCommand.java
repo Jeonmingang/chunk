@@ -10,6 +10,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -62,40 +63,46 @@ public class CleanupCommand implements CommandExecutor {
         List<String> typeNames = plugin.getConfig().getStringList("cleanup.target_entity_types");
         if (typeNames != null) {
             for (String t : typeNames) {
-                try {
-                    targets.add(EntityType.valueOf(t));
-                } catch (IllegalArgumentException ignored) {}
+                try { targets.add(EntityType.valueOf(t)); } catch (IllegalArgumentException ignored) {}
             }
         }
         if (targets.isEmpty()) targets.add(EntityType.DROPPED_ITEM);
 
-        final int[] taskIdHolder = new int[1];
-        taskIdHolder[0] = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, new Runnable() {
-            int remaining = totalSeconds;
+        // Make effectively final copies for inner class
+        final World worldRef = world;
+        final int seconds = totalSeconds;
+        final List<Integer> announceFinal = new ArrayList<Integer>(announce);
+        final String msgTplFinal = msgTpl;
+        final String clearedTplFinal = clearedTpl;
+        final Set<EntityType> targetsFinal = new HashSet<EntityType>(targets);
+
+        new BukkitRunnable() {
+            int remaining = seconds;
             @Override
             public void run() {
                 if (remaining <= 0) {
                     int removed = 0;
-                    for (Entity e : world.getEntities()) {
-                        if (targets.contains(e.getType())) {
+                    for (Entity e : worldRef.getEntities()) {
+                        if (targetsFinal.contains(e.getType())) {
                             e.remove();
                             removed++;
                         }
                     }
                     String done = ChatColor.translateAlternateColorCodes('&',
-                            clearedTpl.replace("{world}", world.getName()).replace("{count}", String.valueOf(removed)));
-                    world.getPlayers().forEach(p -> p.sendMessage(done));
-                    Bukkit.getScheduler().cancelTask(taskIdHolder[0]);
-                } else {
-                    if (announce.contains(remaining)) {
-                        String m = ChatColor.translateAlternateColorCodes('&',
-                                msgTpl.replace("{world}", world.getName()).replace("{sec}", String.valueOf(remaining)));
-                        world.getPlayers().forEach(p -> p.sendMessage(m));
-                    }
-                    remaining--;
+                            clearedTplFinal.replace("{world}", worldRef.getName()).replace("{count}", String.valueOf(removed)));
+                    worldRef.getPlayers().forEach(p -> p.sendMessage(done));
+                    cancel();
+                    return;
                 }
+
+                if (announceFinal.contains(remaining)) {
+                    String m = ChatColor.translateAlternateColorCodes('&',
+                            msgTplFinal.replace("{world}", worldRef.getName()).replace("{sec}", String.valueOf(remaining)));
+                    worldRef.getPlayers().forEach(p -> p.sendMessage(m));
+                }
+                remaining--;
             }
-        }, 0L, 20L);
+        }.runTaskTimer(plugin, 0L, 20L);
 
         sender.sendMessage(ChatColor.GREEN + "청소 카운트다운 시작: " + world.getName() + " (" + totalSeconds + "초)");
         return true;
