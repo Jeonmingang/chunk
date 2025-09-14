@@ -1,4 +1,4 @@
-name: Build & Release (Java 8)
+name: Java 8 Maven - Auto modules
 
 on:
   push:
@@ -7,54 +7,57 @@ on:
   pull_request:
 
 permissions:
-  contents: write   # tag push 시 릴리즈 업로드 위해 필요
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  contents: write
 
 jobs:
   build:
-    name: Build ${{ matrix.module }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        module: [ "ultimate-autochunky", "serveropskit" ]  # 리포 구조에 맞게 조정 가능
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 8 (Temurin)
+      - name: Set up JDK 8
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "8"
           cache: maven
 
-      - name: Build with Maven
+      - name: Build all Maven modules (auto-discover)
         run: |
-          mvn -B -q -DskipTests -f "${{ matrix.module }}/pom.xml" clean package
+          set -e
+          mapfile -t POMS < <(git ls-files | grep -E '(^|/)+pom\.xml$' | grep -v '^\.github/')
+          echo "Found POMs:"
+          printf ' - %s
+' "${POMS[@]}"
+          for P in "${POMS[@]}"; do
+            echo ">>> Building $P"
+            mvn -B -q -DskipTests -f "$P" clean package
+          done
 
-      - name: Upload JAR artifact
+      - name: Upload all JARs
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.module }}-jar
-          path: ${{ matrix.module }}/target/*.jar
+          name: jars
+          path: |
+            **/target/*.jar
+            !**/*-sources.jar
+            !**/*-javadoc.jar
 
   release:
-    name: Release on tag
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
+          name: jars
           path: artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/**/*
+          files: artifacts/**/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
