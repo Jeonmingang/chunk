@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.minkang.ultimate</groupId>
   <artifactId>UltimateTrashOptimize</artifactId>
-  <version>1.2.1</version>
+  <version>1.2.2</version>
   <name>UltimateTrashOptimize</name>
   <description>Trash GUI + Optimize wrappers + farmland protect + cleanup + conditions</description>
   <properties>

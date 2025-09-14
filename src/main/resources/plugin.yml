@@ -1,6 +1,6 @@
 name: UltimateTrashOptimize
 main: com.minkang.ultimate.trashopt.Main
-version: 1.2.1
+version: 1.2.2
 api-version: 1.16
 author: minkang
 commands:

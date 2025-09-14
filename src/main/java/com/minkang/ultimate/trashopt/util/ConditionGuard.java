@@ -19,7 +19,7 @@ public class ConditionGuard {
         double minTps = plugin.getConfig().getDouble("conditions.min_tps", 18.5);
         double currentTps = plugin.getTpsMonitor().getTps();
         if (currentTps < minTps) {
-            sender.sendMessage(ChatColor.RED + "[조건] TPS " + String.format(\"%.2f\", currentTps) + " < " + minTps + " 이므로 '" + context + "' 실행 불가");
+            sender.sendMessage(ChatColor.RED + "[조건] TPS " + String.format("%.2f", currentTps) + " < " + minTps + " 이므로 '" + context + "' 실행 불가");
             return false;
         }
 
@@ -43,7 +43,7 @@ public class ConditionGuard {
             boolean inWindow;
             if (start <= end) {
                 inWindow = (hour >= start && hour < end);
-            } else { // wrap (22 -> 6)
+            } else { // wrap (e.g., 22 -> 6)
                 inWindow = !(hour >= end && hour < start);
             }
             if (!inWindow) {
