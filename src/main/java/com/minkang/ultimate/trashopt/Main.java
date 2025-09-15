@@ -3,6 +3,7 @@ package com.minkang.ultimate.trashopt;
 import com.minkang.ultimate.trashopt.commands.*;
 import com.minkang.ultimate.trashopt.listeners.FarmProtectListener;
 import com.minkang.ultimate.trashopt.listeners.TrashListener;
+import com.minkang.ultimate.trashopt.util.AutoCleanupManager;
 import com.minkang.ultimate.trashopt.util.TpsMonitor;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -13,6 +14,7 @@ public class Main extends JavaPlugin {
     private static Main instance;
     private NamespacedKey openerKey;
     private TpsMonitor tpsMonitor;
+    private AutoCleanupManager autoCleanupManager;
 
     @Override
     public void onEnable() {
@@ -33,10 +35,16 @@ public class Main extends JavaPlugin {
         getCommand("청소").setExecutor(new CleanupCommand(this));
         getCommand("조건").setExecutor(new ToggleConditionsCommand(this));
         getCommand("조건상태").setExecutor(new ToggleConditionsCommand(this));
+        getCommand("청소자동").setExecutor(new ToggleAutoCleanupCommand(this));
+        getCommand("농장보호").setExecutor(new ToggleFarmProtectCommand(this));
 
         // Listeners
         Bukkit.getPluginManager().registerEvents(new TrashListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new FarmProtectListener(), this);
+        Bukkit.getPluginManager().registerEvents(new FarmProtectListener(this), this);
+
+        // Auto cleanup
+        autoCleanupManager = new AutoCleanupManager(this);
+        autoCleanupManager.startFromConfig();
 
         getLogger().info("[UltimateTrashOptimize] Enabled v" + getDescription().getVersion());
     }
@@ -44,6 +52,7 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         if (tpsMonitor != null) tpsMonitor.stop();
+        if (autoCleanupManager != null) autoCleanupManager.stop();
         getLogger().info("[UltimateTrashOptimize] Disabled.");
     }
 
@@ -58,4 +67,6 @@ public class Main extends JavaPlugin {
     public TpsMonitor getTpsMonitor() {
         return tpsMonitor;
     }
+
+    public AutoCleanupManager getAutoCleanupManager() { return autoCleanupManager; }
 }

@@ -17,6 +17,9 @@ optimize:
   starlight:
     relight: ["starlight relight {world}"]
 
+farm_protect:
+  enabled: true
+
 cleanup:
   worlds: ["world", "bskyblock_world"]
   announce_seconds: [30, 10, 3, 2, 1]
@@ -24,6 +27,13 @@ cleanup:
   message_template: "&e{world}&7 월드에서 {sec}초 후 바닥 아이템을 청소합니다."
   cleared_message: "&a{world}&7 월드 바닥 아이템 {count}개 제거 완료."
   target_entity_types: ["DROPPED_ITEM"]
+  auto:
+    enabled: false
+    interval_minutes: 15
+    seconds: 30
+    announce_seconds: [30, 10, 3, 2, 1]
+    check_conditions: true
+    worlds: []   # 비우면 cleanup.worlds 사용
 
 conditions:
   enabled: true

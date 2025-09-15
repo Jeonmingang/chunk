@@ -36,7 +36,7 @@ public class ToggleConditionsCommand implements CommandExecutor {
                     ", max_players=" + maxPlayers +
                     ", time_window.enabled=" + timeEnabled +
                     ", time=" + start + "~" + end + " (" + tz + ")");
-            boolean allowed = com.minkang.ultimate.trashopt.util.ConditionGuard.checkAllowed(sender, "점검");
+            boolean allowed = ConditionGuard.checkAllowed(sender, "점검");
             sender.sendMessage(ChatColor.AQUA + "현재 조건으로 실행 가능? " + (allowed ? ChatColor.GREEN + "예" : ChatColor.RED + "아니오"));
             return true;
         }

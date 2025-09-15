@@ -1,6 +1,6 @@
 name: UltimateTrashOptimize
 main: com.minkang.ultimate.trashopt.Main
-version: 1.2.3
+version: 1.3.0
 api-version: 1.16
 author: minkang
 commands:
@@ -25,6 +25,12 @@ commands:
   조건상태:
     description: 현재 조건 및 허용 여부 표시
     usage: /조건상태
+  청소자동:
+    description: 자동 청소 on/off 토글
+    usage: /청소자동 [on|off]
+  농장보호:
+    description: 농작물 밟힘 방지 on/off 토글
+    usage: /농장보호 [on|off]
 permissions:
   ultimate.trash.admin:
     default: op
@@ -35,3 +41,6 @@ permissions:
   ultimate.conditions.admin:
     default: op
     description: 조건 토글/설정 권한
+  ultimate.farm.admin:
+    default: op
+    description: 농장 보호 토글 권한
