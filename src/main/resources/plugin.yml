@@ -1,0 +1,14 @@
+name: UltimateTrashOptimize
+main: com.minkang.uto.Main
+version: 1.8.0
+api-version: 1.16
+author: minkang
+commands:
+  최적화:
+    description: 설정 리로드/상태/연동
+    usage: /최적화 <리로드|상태|청소|청키|경계>
+    permission: uto.admin
+    aliases: [optimize]
+permissions:
+  uto.admin:
+    default: op

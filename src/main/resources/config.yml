@@ -1,0 +1,44 @@
+prefix: "&7[&bUTO&7]&r "
+
+messages:
+  cleanup_countdown_map:
+    "60": "&e모든 월드에서 %type% 60초 전!"
+    "30": "&e모든 월드에서 %type% 30초 전!"
+    "10": "&e모든 월드에서 %type% 10초 전!"
+    "5":  "&6모든 월드에서 %type% 5초 전!"
+    "4":  "&6모든 월드에서 %type% 4초 전!"
+    "3":  "&c모든 월드에서 %type% 3초 전!"
+    "2":  "&c모든 월드에서 %type% 2초 전!"
+    "1":  "&c모든 월드에서 %type% 1초 전!"
+  cleanup_countdown: "&e모든 월드에서 %type% %seconds%s 후 실행됩니다..."
+  cleanup_started: "&6모든 월드에서 %type% 를 시작합니다."
+  cleanup_done: "&a%type% 완료: 제거된 엔티티 %count%개"
+  pixelmon_cleanup_done: "&b비전설 픽셀몬 제거 완료: %count%개 (모든 월드)"
+
+cleanup:
+  broadcastOnce: true
+
+  ground:
+    enabled: true
+    worlds: []
+    intervalSeconds: 600
+    countdownSchedule: [60,30,10,5,4,3,2,1]
+
+  pixelmon:
+    enabled: true
+    worlds: []
+    intervalSeconds: 600
+    countdownSchedule: [60,30,10,5,4,3,2,1]
+    detection:
+      classNameContains: ["pixelmon"]
+    legendaryNameContains: ["legend", "legendary", "전설"]
+
+integrations:
+  starlight:
+    enabled: true
+  worldborder:
+    enabled: true
+  chunky:
+    enabled: true
+    autoPreset: "border"   # border 기반 자동 설정
+    startOnReload: false   # true면 /최적화 리로드 시 자동으로 Chunky 작업 시작
