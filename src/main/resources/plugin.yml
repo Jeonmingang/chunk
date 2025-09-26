@@ -1,0 +1,14 @@
+﻿name: UltimateTrashOptimize
+main: com.minkang.uto.Main
+version: 1.9.0
+api-version: 1.16
+author: minkang
+commands:
+  최적화:
+    description: 서버 최적화 유틸리티
+    usage: /최적화 <리로드|상태|자동 실행|자동 취소|바닥청소 on|off|바닥청소 <월드>|픽셀몬 on|off|픽셀몬 <월드>|청키 시작 [월드]>
+    permission: uto.admin
+    aliases: [optimize]
+permissions:
+  uto.admin:
+    default: op

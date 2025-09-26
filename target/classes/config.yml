@@ -1,0 +1,57 @@
+﻿prefix: "&7[&b최적화&7]&r "
+
+messages:
+  cleanup_countdown_map:
+    "60": "&e모든 월드에서 %type% 60초 전!"
+    "30": "&e모든 월드에서 %type% 30초 전!"
+    "10": "&e모든 월드에서 %type% 10초 전!"
+    "5":  "&6모든 월드에서 %type% 5초 전!"
+    "4":  "&6모든 월드에서 %type% 4초 전!"
+    "3":  "&c모든 월드에서 %type% 3초 전!"
+    "2":  "&c모든 월드에서 %type% 2초 전!"
+    "1":  "&c모든 월드에서 %type% 1초 전!"
+  # 위 맵에 해당 초 키가 없을 때 쓰는 기본 문구
+  cleanup_countdown: "&e모든 월드에서 %type% %seconds%s 후 실행됩니다..."
+  cleanup_started: "&6모든 월드에서 %type% 를 시작합니다."
+  cleanup_done: "&a%type% 완료: 제거된 엔티티 %count%개"
+  ground_cleanup_done: "&a바닥청소 완료: 제거된 아이템 %count%개"
+  pixelmon_cleanup_done: "&b비전설은 픽셀몬 제거 울트라홀 굴은 유지 픽셀몬 제거 완료: %count%개 (모든 월드)"
+
+cleanup:
+  broadcastOnce: true             # 전역 1회 방송(월드별 반복X)
+
+  ground:
+    enabled: true
+    worlds: []                    # 비우면 모든 월드
+    intervalSeconds: 600
+    countdownSchedule: [60,30,10,5,4,3,2,1]
+
+  pixelmon:
+    enabled: true
+    worlds: []                    # 비우면 모든 월드
+    intervalSeconds: 600
+    countdownSchedule: [60,30,10,5,4,3,2,1]
+    detection:
+      classNameContains: ["pixelmon"]
+    legendaryNameContains: ["legend", "legendary", "전설"]
+    excludedWorldNameContains: ["ultra","울트라","ultraspace"]
+
+auto:
+  enabled: true
+  playerThreshold: 10
+  timeWindow:
+    enabled: true
+    start: "04:00"
+    end: "07:00"
+  actions:
+    ground: true
+    pixelmon: true
+  countdownSeconds: 60
+
+integrations:
+  starlight: { enabled: true }
+  worldborder: { enabled: true }
+  chunky:
+    enabled: true
+    autoPreset: "border"
+    startOnReload: false          # true면 /최적화 리로드 시 자동 프리젠 시작
